@@ -42,3 +42,8 @@ vizdoom.ini
 docs/envs/**/*.*
 !docs/envs/**/index.md
 _build/
+
+# tmp files
+tmp*
+
+.vscode/
