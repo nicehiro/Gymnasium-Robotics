@@ -21,6 +21,23 @@ def register_robotics_envs():
             "reward_type": reward_type,
         }
 
+        # multi Pick and Place
+        register(
+            id=f"FetchPickAndPlace{suffix}-v3",
+            entry_point="gymnasium_robotics.envs.multi_fetch.multi_pnp:MultiMujocoFetchPickAndPlaceEnv",
+            kwargs=kwargs,
+            max_episode_steps=300,
+        )
+
+        # multi Push
+        register(
+            id=f"FetchPush{suffix}-v3",
+            entry_point="gymnasium_robotics.envs.multi_fetch.multi_pnp:MultiMujocoFetchPushEnv",
+            kwargs=kwargs,
+            max_episode_steps=1500,
+        )
+
+
         # Fetch
         register(
             id=f"FetchSlide{suffix}-v1",
