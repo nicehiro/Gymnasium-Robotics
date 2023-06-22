@@ -1,5 +1,6 @@
 import os
 import tempfile
+from typing import Optional, List
 
 import gymnasium as gym
 import numpy as np
@@ -184,6 +185,49 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
             )
             self.model.site_pos[site_id] = self.goal[i*3:(i+1)*3] - sites_offset[i]
         self._mujoco.mj_forward(self.model, self.data)
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[dict] = None,
+    ):
+        # super().reset(seed=seed)
+        if options is not None and options["fixed"] == True:
+            self._reset_given_sim(options["init_pos"], options["goal_pos"])
+        else:
+            did_reset_sim = False
+            while not did_reset_sim:
+                did_reset_sim = self._reset_sim()
+            self.goal = self._sample_goal().copy()
+        obs = self._get_obs()
+        if self.render_mode == "human":
+            self.render()
+
+        return obs, {}
+
+    def _reset_given_sim(self, init_poses: List, goal_poses: List):
+        self.data.time = self.initial_time
+        self.data.qpos[:] = np.copy(self.initial_qpos)
+        self.data.qvel[:] = np.copy(self.initial_qvel)
+        if self.model.na != 0:
+            self.data.act[:] = None
+
+        # reset fix object pos
+        for i in range(len(self.object_names)):
+            object_name = self.object_names[i]
+            object_qpos = self._utils.get_joint_qpos(
+                self.model, self.data, f"{object_name}:joint"
+            )
+            object_qpos[:2] = init_poses[i][:2]
+            self._utils.set_joint_qpos(
+                self.model, self.data, f"{object_name}:joint", object_qpos.copy()
+            )
+            self._mujoco.mj_forward(self.model, self.data)
+
+        # reset fix goal pos
+        self.goal = np.concatenate(goal_poses)
+        return True
 
     def _reset_sim(self):
         self.data.time = self.initial_time
