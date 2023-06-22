@@ -17,7 +17,9 @@ class Task(Enum):
 
 
 class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
-    def __init__(self, reward_type="sparse", num_blocks=3, **kwargs):
+    def __init__(
+        self, reward_type="sparse", num_blocks=3, goal_level_prob=[0, 0, 0, 1], **kwargs
+    ):
         initial_qpos = {
             "robot0:slide0": 0.405,
             "robot0:slide1": 0.48,
@@ -55,7 +57,9 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         )
         EzPickle.__init__(self, reward_type=reward_type, **kwargs)
 
-    def _sample_goal(self):
+        self.goal_level_prob = goal_level_prob
+
+    def _sample_level_4_goal(self):
         goals = []
 
         goal_object0 = self.initial_gripper_xpos[:2] + self.np_random.uniform(
@@ -105,6 +109,53 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
 
             goals.append(goal_objecti)
 
+        return goals
+
+    def _sample_goal(self):
+        # sample easy goal for collect data and pretrain
+        # only need to move one or two blocks each time
+        # level: 1: move first block; 2: move second block over first block
+        # level: 3: move third block over first two blocks
+        # level: 4: move three blocks
+        assert self.goal_level in [1, 2, 3, 4]
+
+        object_poses = []
+        for i in range(0, self.num_blocks):
+            object_pos = self._utils.get_site_xpos(
+                self.model, self.data, self.object_names[i]
+            )
+            object_pos[2] = self.height_offset
+            object_poses.append(object_pos)
+
+        if self.goal_level == 1:
+            goals = []
+            goal_object0 = self.initial_gripper_xpos[:2] + self.np_random.uniform(
+                -self.target_range, self.target_range, size=2
+            )
+            while not np.all(
+                [
+                    np.linalg.norm(goal_object0 - obj_pos[:2]) >= 0.1
+                    for obj_pos in self._init_states
+                ]
+            ):
+                goal_object0 = self.initial_gripper_xpos[:2] + self.np_random.uniform(
+                    -self.target_range, self.target_range, size=2
+                )
+            goal_object0 = np.append(goal_object0, self.height_offset)
+            # Start off goals array with the first block
+            goals.append(goal_object0)
+            # keep others at initial position
+            for i in range(1, self.num_blocks):
+                goals.append(object_poses[i])
+        elif self.goal_level == 2:
+            goal_object1 = np.append(object_poses[0][:2], self.height_offset + 0.05)
+            goals = [object_poses[0], goal_object1, object_poses[2]]
+        elif self.goal_level == 3:
+            goal_object1 = np.append(object_poses[0][:2], self.height_offset + 0.05)
+            goal_object2 = np.append(object_poses[0][:2], self.height_offset + 0.1)
+            goals = [object_poses[0], goal_object1, goal_object2]
+        elif self.goal_level == 4:
+            goals = self._sample_level_4_goal()
         return np.concatenate(goals, axis=0).copy()
 
     def reset(self, seed=None, options=None):
@@ -123,6 +174,12 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         ]
         self.hold_times = 0
         self.relex_times = 0
+
+        total_levels = [1, 2, 3, 4]
+
+        self.goal_level = np.random.choice(
+            total_levels, p=self.goal_level_prob, size=1
+        )[0]
 
         obs = super().reset(seed=seed, options=options)
         return obs
