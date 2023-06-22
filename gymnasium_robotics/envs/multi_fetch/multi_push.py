@@ -16,7 +16,13 @@ class Task(Enum):
 
 
 class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
-    def __init__(self, reward_type="sparse", num_blocks=4, **kwargs):
+    def __init__(
+        self,
+        reward_type="sparse",
+        num_blocks=4,
+        goal_level_prob=[0, 0, 0, 0, 1],
+        **kwargs,
+    ):
         initial_qpos = {
             "robot0:slide0": 0.405,
             "robot0:slide1": 0.48,
@@ -49,6 +55,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             **kwargs,
         )
         EzPickle.__init__(self, reward_type=reward_type, **kwargs)
+        self.goal_level_prob = goal_level_prob
 
     def _sample_goal(self):
         goals = []
@@ -64,7 +71,25 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         goal_object3 = init_grip_xpos + np.array([-0.2, -0.25])
         goal_object3 = np.append(goal_object3, self.height_offset)
 
-        goals = [goal_object0, goal_object1, goal_object2, goal_object3]
+        object_poses = []
+        for i in range(0, self.num_blocks):
+            object_pos = self._utils.get_site_xpos(
+                self.model, self.data, self.object_names[i]
+            )
+            object_pos[2] = self.height_offset
+            object_poses.append(object_pos)
+
+        if self.goal_level == 1:
+            goals = [goal_object0, object_poses[1], object_poses[2], object_poses[3]]
+        elif self.goal_level == 2:
+            goals = [object_poses[0], goal_object1, object_poses[2], object_poses[3]]
+        elif self.goal_level == 3:
+            goals = [object_poses[0], object_poses[1], goal_object2, object_poses[3]]
+        elif self.goal_level == 4:
+            goals = [object_poses[0], object_poses[1], object_poses[2], goal_object3]
+        elif self.goal_level == 5:
+            goals = [goal_object0, goal_object1, goal_object2, goal_object3]
+
         self.goals = np.concatenate(goals, axis=0).copy()
         return self.goals
 
@@ -84,6 +109,12 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         # obstacles list
         self.obstacles = [[]] * self.num_blocks
         self.ranks = [0] * self.num_blocks
+
+        total_levels = [1, 2, 3, 4, 5]
+
+        self.goal_level = np.random.choice(
+            total_levels, p=self.goal_level_prob, size=1
+        )[0]
 
         obs = super().reset(seed=seed, options=options)
 
@@ -299,7 +330,6 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             return True
         else:
             return False
-
 
 
 if __name__ == "__main__":
