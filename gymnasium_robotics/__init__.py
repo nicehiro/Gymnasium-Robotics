@@ -30,7 +30,7 @@ def register_robotics_envs():
         # multi Push
         register(
             id=f"FetchPush{suffix}-v3",
-            entry_point="gymnasium_robotics.envs.multi_fetch.multi_pnp:MultiMujocoFetchPushEnv",
+            entry_point="gymnasium_robotics.envs.multi_fetch.multi_push:MultiMujocoFetchPushEnv",
             kwargs=kwargs,
             max_episode_steps=1500,
         )
