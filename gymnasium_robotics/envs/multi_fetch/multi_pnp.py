@@ -107,7 +107,7 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
 
         return np.concatenate(goals, axis=0).copy()
 
-    def reset(self, seed=None):
+    def reset(self, seed=None, options=None):
         # check subgoal finished sequatially
         self.pick_and_place = [
             Task.ApproachObj,
@@ -124,7 +124,7 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         self.hold_times = 0
         self.relex_times = 0
 
-        obs = super().reset()
+        obs = super().reset(seed=seed, options=options)
         return obs
 
     def gripper_pos_far_from_goals(self, achieved_goal, goal):
