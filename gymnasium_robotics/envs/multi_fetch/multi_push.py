@@ -68,7 +68,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         self.goals = np.concatenate(goals, axis=0).copy()
         return self.goals
 
-    def reset(self, seed=None):
+    def reset(self, seed=None, options=None):
         self.push = [
             Task.Reset,
             Task.ApproachObj,
@@ -85,7 +85,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         self.obstacles = [[]] * self.num_blocks
         self.ranks = [0] * self.num_blocks
 
-        obs = super().reset()
+        obs = super().reset(seed=seed, options=options)
 
         # subgoal finished or not
         self.subgoal_finished = [False] * self.num_blocks
