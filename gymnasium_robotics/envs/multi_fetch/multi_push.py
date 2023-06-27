@@ -153,9 +153,9 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         reward = np.asarray(reward)
 
         # If blocks are successfully aligned with goals, add a bonus for the gripper being away from the goals
-        np.putmask(
-            reward, reward == 0, self.gripper_pos_far_from_goals(achieved_goal, goal)
-        )
+        # np.putmask(
+        #     reward, reward == 0, self.gripper_pos_far_from_goals(achieved_goal, goal)
+        # )
         return reward
 
     def get_demo_action(self):
