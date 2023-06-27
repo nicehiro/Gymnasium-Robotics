@@ -92,7 +92,7 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
             self._mujoco.mj_forward(self.model, self.data)
 
     def _set_action(self, action):
-        action = super()._set_action(0.2 * action)
+        action = super()._set_action(1 * action)
 
         # Apply action to simulation.
         self._utils.ctrl_set_action(self.model, self.data, action)
