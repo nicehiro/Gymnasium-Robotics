@@ -303,3 +303,15 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         action = np.append(dist, np.array(grasp_ctrl))
         self.last_action = action
         return action * 5, []
+
+    def _get_demo_action(self, obs):
+        # reset gripper
+        self._utils.set_joint_qpos("robot0:grip", obs["observation"][:3])
+        options = {
+            "fixed": True,
+            "init_pos": obs["observation"][3 : self.num_blocks * 3 + 3],
+            "goal_pos": obs["desired_goal"],
+        }
+        self.reset(options=options)
+
+        return self.get_demo_action()
