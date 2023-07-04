@@ -23,6 +23,7 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
         self,
         default_camera_config: dict = DEFAULT_CAMERA_CONFIG,
         num_blocks=3,
+        distance_threshold=0.05,
         **kwargs,
     ):
         self.num_blocks = num_blocks
@@ -40,6 +41,7 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
         super().__init__(
             default_camera_config=default_camera_config,
             model_path=MODEL_XML_PATH,
+            distance_threshold=distance_threshold,
             **kwargs,
         )
 

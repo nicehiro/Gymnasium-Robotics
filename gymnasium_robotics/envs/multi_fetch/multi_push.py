@@ -331,6 +331,58 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         else:
             return False
 
+    def get_demo_action_(self, obs):
+        grip_pos = obs["observation"][:3]
+
+        # find easiest one to push
+        obstacles = [[]] * self.num_blocks
+        ranks = [0] * self.num_blocks
+        for i in range(self.num_blocks):
+            block_pos = obs["achieved_goal"][i * 3 : i * 3 + 3]
+            goal_pos = obs['desired_goal'][i * 3 : i * 3 + 3]
+            dist = np.linalg.norm(block_pos - goal_pos)
+            if dist < 0.05:
+                obstacles[i] = [(1, 1)] * 10
+                ranks[i] = len(obstacles[i])
+                continue
+            obstacles[i] = self._get_obstacles_index(i).copy()
+            ranks[i] = len(obstacles[i])
+        # rank the lenght of obstacles list
+        t = sorted(ranks)
+        easiest_block = ranks.index(t[0])
+
+        curr_block_pos = obs["achieved_goal"][easiest_block * 3 : easiest_block * 3 + 3]
+        curr_goal_pos = obs["desired_goal"][easiest_block * 3 : easiest_block * 3 + 3]
+
+        # check if grip approach the hold-back position
+        new_goal_pos = self._get_hold_back_position(
+            curr_block_pos.copy(), curr_goal_pos.copy()
+        )
+        
+        # check x-y first
+        dist_xy = np.linalg.norm(grip_pos[:2] - new_goal_pos[:2])
+        if dist_xy >= 0.025:
+            new_goal_pos[2] = 0.6
+            action = new_goal_pos - grip_pos
+            action = np.append(action, np.array(0.0))
+            return action, None
+
+        dist = np.linalg.norm(grip_pos - new_goal_pos)
+        if dist < 0.03:
+            action = curr_goal_pos - curr_block_pos
+        else:
+            action = new_goal_pos - grip_pos
+
+        if np.any(action < 0.0002):
+            times = 10
+        elif np.any(action < 0.002):
+            times = 5
+        else:
+            times = 1
+        action = times * action
+        action = np.append(action, np.array(0.0))
+        return action, [curr_block_pos, curr_goal_pos]
+
 
 if __name__ == "__main__":
     env = MultiMujocoFetchPushEnv()
