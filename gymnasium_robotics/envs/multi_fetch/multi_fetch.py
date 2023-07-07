@@ -65,15 +65,15 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
 
         obs = np.concatenate(
             [
-                grip_pos, # 3
-                np.concatenate(object_poses).ravel(), # 3 * num_blocks
-                np.concatenate(object_rel_poses).ravel(), # 3 * num_blocks
-                gripper_state, # 2
-                np.concatenate(object_rots).ravel(), # 3 * num_blocks
-                np.concatenate(object_velps).ravel(), # 3 * num_blocks
-                np.concatenate(object_velrs).ravel(), # 3 * num_blocks
-                grip_velp, # 3
-                gripper_vel, # 2
+                grip_pos,  # 3
+                np.concatenate(object_poses).ravel(),  # 3 * num_blocks
+                np.concatenate(object_rel_poses).ravel(),  # 3 * num_blocks
+                gripper_state,  # 2
+                np.concatenate(object_rots).ravel(),  # 3 * num_blocks
+                np.concatenate(object_velps).ravel(),  # 3 * num_blocks
+                np.concatenate(object_velrs).ravel(),  # 3 * num_blocks
+                grip_velp,  # 3
+                gripper_vel,  # 2
             ]
         )
 
@@ -185,7 +185,9 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
             site_id = self._mujoco.mj_name2id(
                 self.model, self._mujoco.mjtObj.mjOBJ_SITE, "target{}".format(i)
             )
-            self.model.site_pos[site_id] = self.goal[i*3:(i+1)*3] - sites_offset[i]
+            self.model.site_pos[site_id] = (
+                self.goal[i * 3 : (i + 1) * 3] - sites_offset[i]
+            )
         self._mujoco.mj_forward(self.model, self.data)
 
     def reset(
