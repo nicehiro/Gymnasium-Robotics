@@ -184,7 +184,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             easiest_block = ranks.index(t[0])
             # add easiest subgoal to work queue
             self.work_queue.append(
-                [easiest_block, self.goals[easiest_block * 3 : easiest_block * 3 + 3]]
+                [easiest_block, self.goal[easiest_block * 3 : easiest_block * 3 + 3]]
                 + [False] * len(self.push)
             )
             # add obstacles clean subgoal to work queue
@@ -297,7 +297,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             self.model, self.data, f"object{curr_obj_i}"
         )
         # get the goal position
-        goal_pos = self.goals[curr_obj_i * 3 : curr_obj_i * 3 + 3]
+        goal_pos = self.goal[curr_obj_i * 3 : curr_obj_i * 3 + 3]
         left = min(curr_obj_pos[0], goal_pos[0])
         right = max(curr_obj_pos[0], goal_pos[0])
         bottom = min(curr_obj_pos[1], goal_pos[1])
@@ -365,23 +365,25 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             new_goal_pos[2] = 0.6
             action = new_goal_pos - grip_pos
             action = np.append(action, np.array(0.0))
-            return action, None
+            return action, [grip_pos, new_goal_pos]
 
         dist = np.linalg.norm(grip_pos - new_goal_pos)
         if dist < 0.03:
-            action = curr_goal_pos - curr_block_pos
+            action = curr_goal_pos - grip_pos 
+            g = curr_goal_pos
         else:
             action = new_goal_pos - grip_pos
+            g = new_goal_pos
 
-        if np.any(action < 0.0002):
-            times = 10
-        elif np.any(action < 0.002):
-            times = 5
-        else:
-            times = 1
-        action = times * action
+        # if np.any(action < 0.0002):
+        #     times = 10
+        # elif np.any(action < 0.002):
+        #     times = 5
+        # else:
+        #     times = 1
+        # action = times * action
         action = np.append(action, np.array(0.0))
-        return action, [curr_block_pos, curr_goal_pos]
+        return action, [grip_pos, g]
 
 
 if __name__ == "__main__":
