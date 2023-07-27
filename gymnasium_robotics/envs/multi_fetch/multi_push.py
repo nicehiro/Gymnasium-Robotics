@@ -283,7 +283,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         dist = np.linalg.norm(position1 - position2, ord=2)
         dist_x = position1[0] - position2[0]
         dist_y = position1[1] - position2[1]
-        ratio = 0.07 / dist
+        ratio = 0.06 / dist
         # get deviation x, y of position1
         dx = dist_x * ratio
         dy = dist_y * ratio
@@ -359,18 +359,20 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             curr_block_pos.copy(), curr_goal_pos.copy()
         )
         
+        can_reset = False
         # check x-y first
         dist_xy = np.linalg.norm(grip_pos[:2] - new_goal_pos[:2])
         if dist_xy >= 0.025:
             new_goal_pos[2] = 0.6
             action = new_goal_pos - grip_pos
             action = np.append(action, np.array(0.0))
-            return action, [grip_pos, new_goal_pos]
+            return action, [grip_pos, new_goal_pos, can_reset]
 
         dist = np.linalg.norm(grip_pos - new_goal_pos)
         if dist < 0.03:
             action = curr_goal_pos - grip_pos 
             g = curr_goal_pos
+            can_reset = True
         else:
             action = new_goal_pos - grip_pos
             g = new_goal_pos
@@ -383,7 +385,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         #     times = 1
         # action = times * action
         action = np.append(action, np.array(0.0))
-        return action, [grip_pos, g]
+        return action, [grip_pos, g, can_reset]
 
 
 if __name__ == "__main__":
