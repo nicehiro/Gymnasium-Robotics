@@ -21,7 +21,7 @@ def register_robotics_envs():
 
         # multi Pick and Place
         register(
-            id=f"FetchPickAndPlace{suffix}-v3",
+            id=f"FetchPickAndPlace{suffix}-v4",
             entry_point="gymnasium_robotics.envs.multi_fetch.multi_pnp:MultiMujocoFetchPickAndPlaceEnv",
             kwargs=kwargs,
             max_episode_steps=300,
@@ -29,12 +29,11 @@ def register_robotics_envs():
 
         # multi Push
         register(
-            id=f"FetchPush{suffix}-v3",
+            id=f"FetchPush{suffix}-v4",
             entry_point="gymnasium_robotics.envs.multi_fetch.multi_push:MultiMujocoFetchPushEnv",
             kwargs=kwargs,
             max_episode_steps=1500,
         )
-
 
         # Fetch
         register(
@@ -860,6 +859,30 @@ def register_robotics_envs():
                 kwargs,
             ),
             max_episode_steps=700,
+        )
+
+        register(
+            id=f"AntMaze_UMaze_Diverse_G{suffix}-v3",
+            entry_point="gymnasium_robotics.envs.maze.ant_maze:AntMazeEnv",
+            kwargs=_merge(
+                {
+                    "maze_map": maps.U_MAZE_DIVERSE_G,
+                },
+                kwargs,
+            ),
+            max_episode_steps=200,
+        )
+
+        register(
+            id=f"AntMaze_UMaze_Diverse_GR{suffix}-v3",
+            entry_point="gymnasium_robotics.envs.maze.ant_maze:AntMazeEnv",
+            kwargs=_merge(
+                {
+                    "maze_map": maps.U_MAZE_DIVERSE_GR,
+                },
+                kwargs,
+            ),
+            max_episode_steps=200,
         )
 
         register(

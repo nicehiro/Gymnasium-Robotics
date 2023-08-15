@@ -275,7 +275,7 @@ class AntMazeEnv(MazeEnv, EzPickle):
         return obs_dict, info
 
     def step(self, action):
-        ant_obs, _, _, _, info = self.ant_env.step(action)
+        ant_obs, _, _, _, info = self.ant_env.step(0.5 * action)
         obs = self._get_obs(ant_obs)
 
         terminated = self.compute_terminated(obs["achieved_goal"], self.goal, info)
