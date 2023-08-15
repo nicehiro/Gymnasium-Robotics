@@ -150,8 +150,9 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
             goal_object1 = np.append(object_poses[0][:2], self.height_offset + 0.05)
             goals = [object_poses[0], goal_object1, object_poses[2]]
         elif self.goal_level == 3:
+            goal_object1 = np.append(object_poses[0][:2], self.height_offset + 0.05)
             goal_object2 = np.append(object_poses[0][:2], self.height_offset + 0.1)
-            goals = [object_poses[0], object_poses[1], goal_object2]
+            goals = [object_poses[0], goal_object1, goal_object2]
         elif self.goal_level == 4:
             goals = self._sample_level_4_goal()
         return np.concatenate(goals, axis=0).copy()
@@ -198,21 +199,20 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
 
     def compute_reward(self, achieved_goal, goal, info):
         subgoal_distances = self.subgoal_distances(achieved_goal, goal)
-        # Using incremental reward for each block in correct position
-        reward = -np.sum(
-            [
-                (d > self.distance_threshold).astype(np.float32)
-                for d in subgoal_distances
-            ],
-            axis=0,
-        )
-        reward = np.asarray(reward)
-
+        if self.reward_type == "sparse":
+            return - np.sum(
+                [
+                    (d > self.distance_threshold).astype(np.float32)
+                    for d in subgoal_distances
+                ],
+                axis=0,
+            )
+        else:
+            return -np.sum(subgoal_distances, axis=0)
         # If blocks are successfully aligned with goals, add a bonus for the gripper being away from the goals
         # np.putmask(
         #     reward, reward == 0, self.gripper_pos_far_from_goals(achieved_goal, goal)
         # )
-        return reward
 
     def get_demo_action(self):
         demo_distance_threshold = 0.02
