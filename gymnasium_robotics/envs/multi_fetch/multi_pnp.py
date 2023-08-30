@@ -150,9 +150,8 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
             goal_object1 = np.append(object_poses[0][:2], self.height_offset + 0.05)
             goals = [object_poses[0], goal_object1, object_poses[2]]
         elif self.goal_level == 3:
-            goal_object1 = np.append(object_poses[0][:2], self.height_offset + 0.05)
-            goal_object2 = np.append(object_poses[0][:2], self.height_offset + 0.1)
-            goals = [object_poses[0], goal_object1, goal_object2]
+            goal_object1 = np.append(object_poses[0][:2], self.height_offset + 0.1)
+            goals = [object_poses[0], object_poses[1], goal_object1]
         elif self.goal_level == 4:
             goals = self._sample_level_4_goal()
         return np.concatenate(goals, axis=0).copy()
@@ -200,7 +199,7 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
     def compute_reward(self, achieved_goal, goal, info):
         subgoal_distances = self.subgoal_distances(achieved_goal, goal)
         if self.reward_type == "sparse":
-            return - np.sum(
+            return -np.sum(
                 [
                     (d > self.distance_threshold).astype(np.float32)
                     for d in subgoal_distances
@@ -302,16 +301,69 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
 
         action = np.append(dist, np.array(grasp_ctrl))
         self.last_action = action
-        return action * 5, []
 
-    def _get_demo_action(self, obs):
-        # reset gripper
-        self._utils.set_joint_qpos("robot0:grip", obs["observation"][:3])
-        options = {
-            "fixed": True,
-            "init_pos": obs["observation"][3 : self.num_blocks * 3 + 3],
-            "goal_pos": obs["desired_goal"],
-        }
-        self.reset(options=options)
+        subgoal = obs['achieved_goal'].copy()
+        subgoal[current_subgoal * 3 : current_subgoal * 3 + 3] = desired_subgoal
+        return action * 5, [None, None, None, subgoal]
 
-        return self.get_demo_action()
+    def get_demo_action_(self, obs):
+        # TODO: Fixed it!
+        grip_pos = obs["observation"][:3]
+        grip_state = obs["observation"][18:21]
+
+        subgoal_idx = -1
+
+        # find current unfinished subgoal
+        for i in range(self.num_blocks):
+            block_pos = obs["achieved_goal"][i * 3 : i * 3 + 3]
+            goal_pos = obs["desired_goal"][i * 3 : i * 3 + 3]
+            dist = np.linalg.norm(block_pos - goal_pos)
+            if dist > self.distance_threshold:
+                subgoal_idx = i
+                break
+        if subgoal_idx == -1:
+            # all subgoals finished
+            return np.array([0.0, 0.0, 0.0, 0.0]), []
+
+        subgoal = obs["desired_goal"][subgoal_idx * 3 : subgoal_idx * 3 + 3]
+        block_pos = obs["achieved_goal"][subgoal_idx * 3 : subgoal_idx * 3 + 3]
+
+        # check if gripper has reached the top of block
+        dist_xy = np.linalg.norm(grip_pos[:2] - block_pos[:2])
+        if dist_xy > 0.01:
+            # move gripper to the top of block
+            bb = block_pos.copy()
+            bb[2] += 0.05
+            dist = bb - grip_pos
+            action = np.append(dist, np.array([1.0]))
+            return action * 5, []
+
+        # check if gripper has got the block
+        dist_z = np.abs(grip_pos[2] - block_pos[2])
+        if dist_z > 0.01:
+            # move gripper to the block
+            dist = block_pos - grip_pos
+            action = np.append(dist, np.array([0.0]))
+            return action * 5, []
+        elif grip_state[0] <= 0:
+            # close gripper
+            action = np.append(np.array([0.0, 0.0, 0.0]), np.array([0.0]))
+            return action * 5, []
+
+        # check if block has reached the top of subgoal
+        dist_xy = np.linalg.norm(block_pos[:2] - subgoal[:2])
+        if dist_xy > 0.01:
+            # move block to the top of subgoal
+            bb = subgoal.copy()
+            bb[2] += 0.05
+            dist = bb - block_pos
+            action = np.append(dist, np.array([0.0]))
+            return action * 5, []
+
+        # check if block has reached the subgoal
+        dist = np.linalg.norm(block - subgoal)
+        if dist > 0.01:
+            # move block to the subgoal
+            dist = subgoal - block_pos
+            action = np.append(dist, np.array([0.0]))
+            return action * 5, []

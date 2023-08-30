@@ -209,21 +209,21 @@ class MujocoFetchPickAndPlaceTestEnv(MujocoFetchEnv, EzPickle):
         EzPickle.__init__(self, reward_type=reward_type, **kwargs)
 
     def reset(self, **kwargs):
-        lt_pos = np.array([1.25, 0.95])
-        rt_pos = np.array([1.45, 0.95])
-        lb_pos = np.array([1.25, 0.55])
-        rb_pos = np.array([1.45, 0.55])
+        lt_pos = np.array([1.22, 0.98])
+        rt_pos = np.array([1.48, 0.98])
+        lb_pos = np.array([1.22, 0.52])
+        rb_pos = np.array([1.48, 0.52])
         corners = [lt_pos, rt_pos, lb_pos, rb_pos]
 
         # randomly sample initial state from corners
         init_idx = np.random.randint(0, 4)
-        init_pos = corners[init_idx] + np.random.uniform(-0.05, 0.05, size=2)
+        init_pos = corners[init_idx] + np.random.uniform(-0.02, 0.02, size=2)
 
         # randomly sample goal state from corners without init_pos
         # exclude init_idx
         corners.pop(init_idx)
         goal_idx = np.random.randint(0, 3)
-        goal_pos = corners[goal_idx] + np.random.uniform(-0.05, 0.05, size=2)
+        goal_pos = corners[goal_idx] + np.random.uniform(-0.02, 0.02, size=2)
 
         # set fixed initial state and goal
         object_qpos = self._utils.get_joint_qpos(self.model, self.data, "object0:joint")
@@ -235,4 +235,7 @@ class MujocoFetchPickAndPlaceTestEnv(MujocoFetchEnv, EzPickle):
         self._mujoco.mj_forward(self.model, self.data)
         goal_pos = np.append(goal_pos, object_height)
         self.goal = goal_pos.copy()
-        return True
+        
+        obs = self._get_obs()
+
+        return obs, {}

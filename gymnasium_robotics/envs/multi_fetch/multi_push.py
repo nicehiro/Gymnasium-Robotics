@@ -142,7 +142,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             total_levels, p=self.goal_level_prob, size=1
         )[0]
 
-        obs = super().reset(seed=seed, options=options)
+        obs, info = super().reset(seed=seed, options=options)
 
         # subgoal finished or not
         self.subgoal_finished = [False] * self.num_blocks
@@ -150,7 +150,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         # [obj_i, desired_subgoal, push, push, push, push, push]
         self.work_queue = []
 
-        return obs
+        return obs, info
 
     def gripper_pos_far_from_goals(self, achieved_goal, goal):
         gripper_pos = self._utils.get_joint_qpos(self.model, self.data, "robot0:grip")[
@@ -392,7 +392,12 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             new_goal_pos[2] = 0.6
             action = new_goal_pos - grip_pos
             action = np.append(action, np.array(0.0))
-            return action, [grip_pos, new_goal_pos, can_reset]
+
+            new_subgoal = obs["achieved_goal"].copy()
+            new_subgoal[easiest_block * 3 : easiest_block * 3 + 3] = obs[
+                "desired_goal"
+            ][easiest_block * 3 : easiest_block * 3 + 3]
+            return action, [grip_pos, new_goal_pos, can_reset, new_subgoal]
 
         dist = np.linalg.norm(grip_pos - new_goal_pos)
         if dist < 0.03:
@@ -411,7 +416,12 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         #     times = 1
         # action = times * action
         action = np.append(action, np.array(0.0))
-        return action, [grip_pos, g, can_reset]
+
+        new_subgoal = obs["achieved_goal"].copy()
+        new_subgoal[easiest_block * 3 : easiest_block * 3 + 3] = obs["desired_goal"][
+            easiest_block * 3 : easiest_block * 3 + 3
+        ]
+        return action, [grip_pos, g, can_reset, new_subgoal]
 
 
 if __name__ == "__main__":
