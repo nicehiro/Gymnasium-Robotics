@@ -8,7 +8,7 @@ from gymnasium_robotics.envs.fetch.fetch_env import get_base_fetch_env
 from gymnasium_robotics.envs.robot_env import MujocoRobotEnv
 from gymnasium_robotics.utils import rotations
 
-from .xml import generate_xml
+from .xml import generate_xml, generate_xml_with_bar
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 2.5,
@@ -24,10 +24,13 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
         default_camera_config: dict = DEFAULT_CAMERA_CONFIG,
         num_blocks=3,
         distance_threshold=0.05,
+        with_bar=False,
         **kwargs,
     ):
         self.num_blocks = num_blocks
         self.object_names = ["object{}".format(i) for i in range(self.num_blocks)]
+
+        xml_function = generate_xml if not with_bar else generate_xml_with_bar
 
         with tempfile.NamedTemporaryFile(
             mode="wt",
@@ -35,7 +38,7 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
             delete=False,
             suffix=".xml",
         ) as fp:
-            fp.write(generate_xml(self.num_blocks))
+            fp.write(xml_function(self.num_blocks))
             MODEL_XML_PATH = fp.name
 
         super().__init__(
@@ -329,6 +332,21 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
             return True
         else:
             return False
+
+    def compute_terminated(self, achievec_goal, desired_goal, info):
+        # return True if distance between subgoals is less than threshold
+        return self._is_success(achievec_goal, desired_goal)
+
+    def update_subgoal(self, subgoal):
+        sites_offset = (self.data.site_xpos - self.model.site_pos).copy()
+        for i in range(self.num_blocks):
+            site_id = self._mujoco.mj_name2id(
+                self.model, self._mujoco.mjtObj.mjOBJ_SITE, "subgoal{}".format(i)
+            )
+            self.model.site_pos[site_id] = (
+                subgoal[i * 3 : (i + 1) * 3] - sites_offset[i]
+            )
+        self._mujoco.mj_forward(self.model, self.data)
 
 
 if __name__ == "__main__":
