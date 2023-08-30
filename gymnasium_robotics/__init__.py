@@ -37,6 +37,13 @@ def register_robotics_envs():
             max_episode_steps=1500,
         )
 
+        register(
+            id=f'FetchPushOverBar{suffix}-v1',
+            entry_point='gymnasium_robotics.envs.multi_fetch.multi_push_over_bar:MultiMujocoFetchPushOverBarEnv',
+            kwargs=kwargs,
+            max_episode_steps=300,
+        )
+
         # Fetch
         register(
             id=f"FetchSlide{suffix}-v1",

@@ -423,3 +423,7 @@ class MujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
             self.height_offset = self._utils.get_site_xpos(
                 self.model, self.data, "object0"
             )[2]
+
+    def compute_terminated(self, achievec_goal, desired_goal, info):
+        d = goal_distance(achievec_goal, desired_goal)
+        return (d < self.distance_threshold).astype(np.float32)
