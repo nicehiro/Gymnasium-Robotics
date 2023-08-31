@@ -302,14 +302,14 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         action = np.append(dist, np.array(grasp_ctrl))
         self.last_action = action
 
-        subgoal = obs['achieved_goal'].copy()
+        subgoal = obs["achieved_goal"].copy()
         subgoal[current_subgoal * 3 : current_subgoal * 3 + 3] = desired_subgoal
         return action * 5, [None, None, None, subgoal]
 
     def get_demo_action_(self, obs):
         # TODO: Fixed it!
         grip_pos = obs["observation"][:3]
-        grip_state = obs["observation"][18:21]
+        grip_state = obs["observation"][21:23]
 
         subgoal_idx = -1
 
@@ -328,42 +328,79 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         subgoal = obs["desired_goal"][subgoal_idx * 3 : subgoal_idx * 3 + 3]
         block_pos = obs["achieved_goal"][subgoal_idx * 3 : subgoal_idx * 3 + 3]
 
-        # check if gripper has reached the top of block
-        dist_xy = np.linalg.norm(grip_pos[:2] - block_pos[:2])
-        if dist_xy > 0.01:
+        result = obs['achieved_goal'].copy()
+        result[subgoal_idx * 3 : subgoal_idx * 3 + 3] = subgoal
+
+        # flags
+        grip_to_block_flag = np.linalg.norm(grip_pos - block_pos) < 0.005
+        grip_to_block_top_flag = np.linalg.norm(grip_pos[:2] - block_pos[:2]) < 0.004
+        block_to_subgoal_flag = np.linalg.norm(block_pos - subgoal) < 0.0005
+        block_to_subgoal_top_flag = np.linalg.norm(block_pos[:2] - subgoal[:2]) < 0.005
+        grip_close_flag = grip_state[0] < 0.0245
+        grip_open_flag = grip_state[0] > 0.04
+
+        if (
+            not grip_to_block_flag
+            and not grip_to_block_top_flag
+            and not block_to_subgoal_flag
+        ):
             # move gripper to the top of block
             bb = block_pos.copy()
-            bb[2] += 0.05
+            bb[2] += 0.2
             dist = bb - grip_pos
             action = np.append(dist, np.array([1.0]))
-            return action * 5, []
+            print("1")
+            return action * 5, [None, None, None, result]
 
-        # check if gripper has got the block
-        dist_z = np.abs(grip_pos[2] - block_pos[2])
-        if dist_z > 0.01:
+        if grip_to_block_top_flag and not grip_to_block_flag and not grip_close_flag:
             # move gripper to the block
+            bb = block_pos.copy()
+            bb[2] += 0.05
             dist = block_pos - grip_pos
-            action = np.append(dist, np.array([0.0]))
-            return action * 5, []
-        elif grip_state[0] <= 0:
-            # close gripper
-            action = np.append(np.array([0.0, 0.0, 0.0]), np.array([0.0]))
-            return action * 5, []
+            action = np.append(dist, np.array([1.0]))
+            print("2")
+            return action * 5, [None, None, None, result]
 
-        # check if block has reached the top of subgoal
-        dist_xy = np.linalg.norm(block_pos[:2] - subgoal[:2])
-        if dist_xy > 0.01:
+        if grip_to_block_flag and not block_to_subgoal_flag and not grip_close_flag:
+            # close gripper
+            action = np.append(np.array([0.0, 0.0, 0.0]), np.array([-1.0]))
+            print("3")
+            return action * 5, [None, None, None, result]
+
+        if (
+            not block_to_subgoal_flag
+            and not block_to_subgoal_top_flag
+            and grip_close_flag
+            and grip_to_block_flag
+        ):
             # move block to the top of subgoal
             bb = subgoal.copy()
-            bb[2] += 0.05
+            bb[2] += 0.2
             dist = bb - block_pos
-            action = np.append(dist, np.array([0.0]))
-            return action * 5, []
+            action = np.append(dist, np.array([-1.0]))
+            print("4")
+            return action * 5, [None, None, None, result]
 
-        # check if block has reached the subgoal
-        dist = np.linalg.norm(block - subgoal)
-        if dist > 0.01:
+        if (
+            block_to_subgoal_top_flag
+            and not block_to_subgoal_flag
+            and grip_close_flag
+            and grip_to_block_flag
+        ):
             # move block to the subgoal
             dist = subgoal - block_pos
-            action = np.append(dist, np.array([0.0]))
-            return action * 5, []
+            action = np.append(dist, np.array([-1.0]))
+            print("5")
+            return action * 5, [None, None, None, result]
+
+        if (
+            block_to_subgoal_flag
+            and not grip_open_flag
+        ):
+            # open gripper
+            action = np.append(np.array([0.0, 0.0, 0.0]), np.array([1.0]))
+            print("6")
+            return action * 3, [None, None, None, result]
+
+        print("8")
+        return np.array([0.0, 0.0, 0.0, 0.0]), [None, None, None, result]
