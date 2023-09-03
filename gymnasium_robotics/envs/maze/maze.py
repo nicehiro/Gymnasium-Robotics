@@ -208,6 +208,17 @@ class Maze:
             type="sphere",
         )
 
+        # Add subgoal site for visualization
+        ET.SubElement(
+            worldbody,
+            "site",
+            name="subgoal",
+            pos=f"0 0 {maze_height / 2 * maze_size_scaling}",
+            size=f"{0.2 * maze_size_scaling} {0.2 * maze_size_scaling} {0.2 * maze_size_scaling}",
+            rgba="0 1 0 0.5",
+            type="box",
+        )
+
         # Add the combined cell locations (goal/reset) to goal and reset
         if (
             not maze._unique_goal_locations
