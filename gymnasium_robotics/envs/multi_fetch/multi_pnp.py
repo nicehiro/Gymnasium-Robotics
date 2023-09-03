@@ -307,9 +307,10 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         return action * 5, [None, None, None, subgoal]
 
     def get_demo_action_(self, obs):
-        # TODO: Fixed it!
         grip_pos = obs["observation"][:3]
         grip_state = obs["observation"][21:23]
+
+        grip_close_flag = grip_state[0] < 0.0245
 
         subgoal_idx = -1
 
@@ -325,18 +326,26 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
             # all subgoals finished
             return np.array([0.0, 0.0, 0.0, 0.0]), []
 
+        if grip_close_flag:
+            tt = max(0, subgoal_idx - 1)
+            subgoal_temp = obs["desired_goal"][tt * 3 : tt * 3 + 3]
+            grip_to_subgoal_flag = np.linalg.norm(grip_pos - subgoal_temp) < 0.005
+            if grip_to_subgoal_flag:
+                subgoal_idx = tt
+
         subgoal = obs["desired_goal"][subgoal_idx * 3 : subgoal_idx * 3 + 3]
         block_pos = obs["achieved_goal"][subgoal_idx * 3 : subgoal_idx * 3 + 3]
 
-        result = obs['achieved_goal'].copy()
+        result = obs["achieved_goal"].copy()
         result[subgoal_idx * 3 : subgoal_idx * 3 + 3] = subgoal
 
         # flags
-        grip_to_block_flag = np.linalg.norm(grip_pos - block_pos) < 0.005
+        bb = block_pos.copy()
+        bb[2] += 0.02
+        grip_to_block_flag = np.linalg.norm(grip_pos - bb) < 0.005
         grip_to_block_top_flag = np.linalg.norm(grip_pos[:2] - block_pos[:2]) < 0.004
         block_to_subgoal_flag = np.linalg.norm(block_pos - subgoal) < 0.0005
         block_to_subgoal_top_flag = np.linalg.norm(block_pos[:2] - subgoal[:2]) < 0.005
-        grip_close_flag = grip_state[0] < 0.0245
         grip_open_flag = grip_state[0] > 0.04
 
         if (
@@ -355,7 +364,7 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
         if grip_to_block_top_flag and not grip_to_block_flag and not grip_close_flag:
             # move gripper to the block
             bb = block_pos.copy()
-            bb[2] += 0.05
+            bb[2] += 0.01
             dist = block_pos - grip_pos
             action = np.append(dist, np.array([1.0]))
             print("2")
@@ -393,10 +402,7 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
             print("5")
             return action * 5, [None, None, None, result]
 
-        if (
-            block_to_subgoal_flag
-            and not grip_open_flag
-        ):
+        if block_to_subgoal_flag and not grip_open_flag:
             # open gripper
             action = np.append(np.array([0.0, 0.0, 0.0]), np.array([1.0]))
             print("6")

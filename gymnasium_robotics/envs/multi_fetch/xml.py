@@ -64,6 +64,8 @@ base_with_bar = '''<?xml version="1.0" encoding="utf-8"?>
 
         {target_sites}
 
+        {subgoal_sites}
+
         </body>
 
         <include file="robot.xml"></include>
@@ -74,10 +76,8 @@ base_with_bar = '''<?xml version="1.0" encoding="utf-8"?>
         
         {object_bodies}
 
-        <body name="bar" pos="0.025 0.025 0.025">
-            <joint name="bar:joint" type="free" damping="0.01"></joint>
+        <body name="bar" pos="1.3 0.75 0.425">
             <geom size="0.1 0.025 0.025" type="box" condim="3" name="bar" material="bar_mat" mass="2"></geom>
-            <site name="bar" pos="0 0 0" size="0.02 0.02 0.02" rgba="1 0 0 1" type="sphere"></site>
         </body>
         
         <light directional="true" ambient="0.2 0.2 0.2" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" castshadow="false" pos="0 0 4" dir="0 0 -1" name="light0"></light>
@@ -97,7 +97,7 @@ def generate_xml(num_blocks):
     else:
         colors = get_colors(num_blocks)
     site_base = '<site name="target{id}" pos="0 0 0.5" size="0.02 0.02 0.02" rgba="{color} 0.3" type="sphere"></site>'
-    subgoal_site_base = '<site name="subgoal{id}" pos="0 0 0.5" size="0.02 0.02 0.02" rgba="{color} 1.0" type="capsule"></site>'
+    subgoal_site_base = '<site name="subgoal{id}" pos="0 0 0.5" size="0.02 0.02 0.02" rgba="{color} 0.3" type="box"></site>'
     block_base = '''<body name="object{id}" pos="0.025 0.025 0.025">
         <joint name="object{id}:joint" type="free" damping="0.01"></joint>
         <geom size="0.025 0.025 0.025" type="box" condim="3" name="object{id}" material="block{id}_mat" mass="2"></geom>
@@ -124,6 +124,7 @@ def generate_xml_with_bar(num_blocks):
     else:
         colors = get_colors(num_blocks)
     site_base = '<site name="target{id}" pos="0 0 0.5" size="0.02 0.02 0.02" rgba="{color} 0.3" type="sphere"></site>'
+    subgoal_site_base = '<site name="subgoal{id}" pos="0 0 0.5" size="0.02 0.02 0.02" rgba="{color} 0.3" type="box"></site>'
     block_base = '''<body name="object{id}" pos="0.025 0.025 0.025">
         <joint name="object{id}:joint" type="free" damping="0.01"></joint>
         <geom size="0.025 0.025 0.025" type="box" condim="3" name="object{id}" material="block{id}_mat" mass="2"></geom>
@@ -132,11 +133,13 @@ def generate_xml_with_bar(num_blocks):
     asset_base = '<material name="block{id}_mat" specular="0" shininess="0.5" reflectance="0" rgba="{color} 1"></material>'
 
     sites = []
+    subgoal_sites = []
     block_bodies = []
     assets = []
     for i in range(num_blocks):
         sites.append(site_base.format(**dict(id=i, color=colors[i])))
         block_bodies.append(block_base.format(**dict(id=i)))
         assets.append(asset_base.format(**dict(id=i, color=colors[i])))
+        subgoal_sites.append(subgoal_site_base.format(**dict(id=i, color=colors[i])))
 
-    return base_with_bar.format(**dict(assets="\n".join(assets), target_sites="\n".join(sites), object_bodies="\n".join(block_bodies)))
+    return base_with_bar.format(**dict(assets="\n".join(assets), target_sites="\n".join(sites), subgoal_sites="\n".join(subgoal_sites), object_bodies="\n".join(block_bodies)))

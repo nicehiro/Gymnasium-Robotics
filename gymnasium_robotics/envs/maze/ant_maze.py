@@ -99,6 +99,11 @@ class AntMazeEnv(MazeEnv, EzPickle):
         if self.render_mode == "human":
             self.render()
 
+        # add is_success key to info
+        d = np.linalg.norm(obs['achieved_goal'] - self.goal, axis=-1)
+        is_success = (d < 0.05).astype(np.float32)
+        info["is_success"] = is_success
+
         return obs, reward, terminated, truncated, info
 
     def _get_obs(self, ant_obs: np.ndarray) -> Dict[str, np.ndarray]:
@@ -130,3 +135,9 @@ class AntMazeEnv(MazeEnv, EzPickle):
     @property
     def data(self):
         return self.ant_env.data
+        
+    def update_subgoal(self, subgoal: np.ndarray):
+        subgoal_site_id = self._model_names.site_name2id["subgoal"]
+        self.ant_env.model.site_pos[subgoal_site_id] = np.append(
+            subgoal, self.maze.maze_height / 2 * self.maze.maze_size_scaling
+        )
