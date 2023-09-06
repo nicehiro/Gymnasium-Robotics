@@ -224,11 +224,11 @@ class MultiMujocoFetchPushOverBarEnv(MultiMujocoFetchEnv, EzPickle):
             # bar is in the way, reset goal to the top/bottom of the bar
             if block_pos[0] < bar_pos[0]:
                 # left side
-                desired_goal[0] = bar_x_range[0] - 0.05
+                desired_goal[0] = bar_x_range[0] - 0.03
                 desired_goal[1] = bar_pos[1]
             else:
                 # right side
-                desired_goal[0] = bar_x_range[1] + 0.05
+                desired_goal[0] = bar_x_range[1] + 0.03
                 desired_goal[1] = bar_pos[1]
 
         # find easiest one to push
@@ -251,7 +251,7 @@ class MultiMujocoFetchPushOverBarEnv(MultiMujocoFetchEnv, EzPickle):
 
             new_subgoal = obs["achieved_goal"].copy()
             new_subgoal[easiest_block * 3 : easiest_block * 3 + 3] = desired_goal
-            return action * 3, [grip_pos, new_goal_pos, can_reset, new_subgoal]
+            return action, [grip_pos, new_goal_pos, can_reset, new_subgoal]
 
         dist = np.linalg.norm(grip_pos - new_goal_pos)
         if dist < 0.03:
@@ -273,4 +273,4 @@ class MultiMujocoFetchPushOverBarEnv(MultiMujocoFetchEnv, EzPickle):
 
         new_subgoal = obs["achieved_goal"].copy()
         new_subgoal[easiest_block * 3 : easiest_block * 3 + 3] = desired_goal
-        return action * 3, [grip_pos, g, can_reset, new_subgoal]
+        return action, [grip_pos, g, can_reset, new_subgoal]
