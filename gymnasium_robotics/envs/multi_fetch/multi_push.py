@@ -400,7 +400,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             new_subgoal[easiest_block * 3 : easiest_block * 3 + 3] = obs[
                 "desired_goal"
             ][easiest_block * 3 : easiest_block * 3 + 3]
-            return action * 3, [grip_pos, new_goal_pos, can_reset, new_subgoal]
+            return action, [grip_pos, new_goal_pos, can_reset, new_subgoal]
 
         dist = np.linalg.norm(grip_pos - new_goal_pos)
         if dist < 0.03:
