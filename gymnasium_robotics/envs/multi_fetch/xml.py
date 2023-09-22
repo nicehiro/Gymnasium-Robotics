@@ -77,7 +77,7 @@ base_with_bar = '''<?xml version="1.0" encoding="utf-8"?>
         {object_bodies}
 
         <body name="bar" pos="1.3 0.75 0.425">
-            <geom size="0.1 0.025 0.025" type="box" condim="3" name="bar" material="bar_mat" mass="2"></geom>
+            <geom size="0.1 0.025 0.05" type="box" condim="3" name="bar" material="bar_mat" mass="2"></geom>
         </body>
         
         <light directional="true" ambient="0.2 0.2 0.2" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" castshadow="false" pos="0 0 4" dir="0 0 -1" name="light0"></light>

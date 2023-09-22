@@ -156,6 +156,9 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
             goals = self._sample_level_4_goal()
         return np.concatenate(goals, axis=0).copy()
 
+    def sample_goal(self):
+        return self._sample_goal()
+
     def reset(self, seed=None, options=None):
         # check subgoal finished sequatially
         self.pick_and_place = [

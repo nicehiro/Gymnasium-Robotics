@@ -54,6 +54,10 @@ class MultiMujocoFetchPushOverBarEnv(MultiMujocoFetchEnv, EzPickle):
         )
         EzPickle.__init__(self, reward_type=reward_type, **kwargs)
 
+    def reset(self, seed=None, options=None):
+        obs, info = super().reset(seed=seed, options=options)
+        return obs, info
+
     def _reset_sim(self):
         self.data.time = self.initial_time
         self.data.qpos[:] = np.copy(self.initial_qpos)
