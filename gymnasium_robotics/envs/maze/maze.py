@@ -1,15 +1,3 @@
-"""A maze environment with Gymnasium API for the Gymnasium-Robotics PointMaze environments.
-
-The code is inspired by the D4RL repository hosted on GitHub (https://github.com/Farama-Foundation/D4RL), published in the paper
-'D4RL: Datasets for Deep Data-Driven Reinforcement Learning' by Justin Fu, Aviral Kumar, Ofir Nachum, George Tucker, Sergey Levine.
-
-Original Author of the code: Justin Fu
-
-The modifications made involve organizing the code into different files: `maps.py`, `maze_env.py`, `point_env.py`, and `point_maze_env.py`.
-As well as adding support for the Gymnasium API.
-
-This project is covered by the Apache 2.0 License.
-"""
 import math
 import tempfile
 import xml.etree.ElementTree as ET
@@ -23,25 +11,6 @@ from gymnasium_robotics.envs.maze.maps import COMBINED, GOAL, RESET, U_MAZE
 
 
 class Maze:
-    r"""This class creates and holds information about the maze in the MuJoCo simulation.
-
-    The accessible attributes are the following:
-    - :attr:`maze_map` - The maze discrete data structure.
-    - :attr:`maze_size_scaling` - The maze scaling for the continuous coordinates in the MuJoCo simulation.
-    - :attr:`maze_height` - The height of the walls in the MuJoCo simulation.
-    - :attr:`unique_goal_locations` - All the `(i,j)` possible cell indices for goal locations.
-    - :attr:`unique_reset_locations` - All the `(i,j)` possible cell indices for agent initialization locations.
-    - :attr:`combined_locations` - All the `(i,j)` possible cell indices for goal and agent initialization locations.
-    - :attr:`map_length` - Maximum value of j cell index
-    - :attr:`map_width` - Mazimum value of i cell index
-    - :attr:`x_map_center` - The x coordinate of the map's center
-    - :attr:`y_map_center` - The y coordinate of the map's center
-
-    The Maze class also presents a method to convert from cell indices to `(x,y)` coordinates in the MuJoCo simulation:
-    - :meth:`cell_rowcol_to_xy` - Convert from `(i,j)` to `(x,y)`
-
-    """
-
     def __init__(
         self,
         maze_map: List[List[Union[str, int]]],
@@ -65,77 +34,51 @@ class Maze:
 
     @property
     def maze_map(self) -> List[List[Union[str, int]]]:
-        """Returns the list[list] data structure of the maze."""
         return self._maze_map
 
     @property
     def maze_size_scaling(self) -> float:
-        """Returns the scaling value used to integrate the maze
-        encoding in the MuJoCo simulation.
-        """
         return self._maze_size_scaling
 
     @property
     def maze_height(self) -> float:
-        """Returns the un-scaled height of the walls in the MuJoCo
-        simulation.
-        """
         return self._maze_height
 
     @property
     def unique_goal_locations(self) -> List[np.ndarray]:
-        """Returns all the possible goal locations in discrete cell
-        coordinates (i,j)
-        """
         return self._unique_goal_locations
 
     @property
     def unique_reset_locations(self) -> List[np.ndarray]:
-        """Returns all the possible reset locations for the agent in
-        discrete cell coordinates (i,j)
-        """
         return self._unique_reset_locations
 
     @property
     def combined_locations(self) -> List[np.ndarray]:
-        """Returns all the possible goal/reset locations in discrete cell
-        coordinates (i,j)
-        """
         return self._combined_locations
 
     @property
     def map_length(self) -> int:
-        """Returns the length of the maze in number of discrete vertical cells
-        or number of rows i.
-        """
         return self._map_length
 
     @property
     def map_width(self) -> int:
-        """Returns the width of the maze in number of discrete horizontal cells
-        or number of columns j.
-        """
         return self._map_width
 
     @property
     def x_map_center(self) -> float:
-        """Returns the x coordinate of the center of the maze in the MuJoCo simulation"""
         return self._x_map_center
 
     @property
     def y_map_center(self) -> float:
-        """Returns the x coordinate of the center of the maze in the MuJoCo simulation"""
         return self._y_map_center
 
     def cell_rowcol_to_xy(self, rowcol_pos: np.ndarray) -> np.ndarray:
-        """Converts a cell index `(i,j)` to x and y coordinates in the MuJoCo simulation"""
         x = (rowcol_pos[1] + 0.5) * self.maze_size_scaling - self.x_map_center
         y = self.y_map_center - (rowcol_pos[0] + 0.5) * self.maze_size_scaling
 
         return np.array([x, y])
 
     def cell_xy_to_rowcol(self, xy_pos: np.ndarray) -> np.ndarray:
-        """Converts a cell x and y coordinates to `(i,j)`"""
         i = math.floor((self.y_map_center - xy_pos[1]) / self.maze_size_scaling)
         j = math.floor((xy_pos[0] + self.x_map_center) / self.maze_size_scaling)
         return np.array([i, j])
@@ -148,20 +91,6 @@ class Maze:
         maze_size_scaling: float,
         maze_height: float,
     ):
-        """Class method that returns an instance of Maze with a decoded maze information and the temporal
-           path to the new MJCF (xml) file for the MuJoCo simulation.
-
-        Args:
-            agent_xml_path (str): the goal that was achieved during execution
-            maze_map (list[list[str,int]]): the desired goal that we asked the agent to attempt to achieve
-            maze_size_scaling (float): an info dictionary with additional information
-            maze_height (float): an info dictionary with additional information
-
-        Returns:
-            Maze: The reward that corresponds to the provided achieved goal w.r.t. to the desired
-            goal. Note that the following should always hold true:
-            str: The xml temporal file to the new mjcf model with the included maze.
-        """
         tree = ET.parse(agent_xml_path)
         worldbody = tree.find(".//worldbody")
 
@@ -286,15 +215,14 @@ class MazeEnv(GoalEnv):
         else:
             if "goal_cell" in options and options["goal_cell"] is not None:
                 # assert that goal cell is valid
-                assert self.maze.map_length > options["goal_cell"][1]
-                assert self.maze.map_width > options["goal_cell"][0]
+                assert self.maze.map_length > options["goal_cell"][0]
+                assert self.maze.map_width > options["goal_cell"][1]
                 assert (
-                    self.maze.maze_map[options["goal_cell"][1], options["goal_cell"][0]]
+                    self.maze.maze_map[options["goal_cell"][0]][options["goal_cell"][1]]
                     != 1
                 ), f"Goal can't be placed in a wall cell, {options['goal_cell']}"
 
                 goal = self.maze.cell_rowcol_to_xy(options["goal_cell"])
-
             else:
                 goal = self.generate_target_goal()
 
@@ -303,11 +231,11 @@ class MazeEnv(GoalEnv):
 
             if "reset_cell" in options and options["reset_cell"] is not None:
                 # assert that goal cell is valid
-                assert self.maze.map_length > options["reset_cell"][1]
-                assert self.maze.map_width > options["reset_cell"][0]
+                assert self.maze.map_length > options["reset_cell"][0]
+                assert self.maze.map_width > options["reset_cell"][1]
                 assert (
-                    self.maze.maze_map[
-                        options["reset_cell"][1], options["reset_cell"][0]
+                    self.maze.maze_map[options["reset_cell"][0]][
+                        options["reset_cell"][1]
                     ]
                     != 1
                 ), f"Reset can't be placed in a wall cell, {options['reset_cell']}"
@@ -326,9 +254,6 @@ class MazeEnv(GoalEnv):
         self.update_target_site_pos()
 
     def add_xy_position_noise(self, xy_pos: np.ndarray) -> np.ndarray:
-        """Pass an x,y coordinate and it will return the same coordinate with a noise addition
-        sampled from a uniform distribution
-        """
         noise_x = (
             self.np_random.uniform(
                 low=-self.position_noise_range, high=self.position_noise_range
@@ -349,11 +274,11 @@ class MazeEnv(GoalEnv):
     def compute_reward(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
     ) -> float:
-        d = np.linalg.norm(achieved_goal - desired_goal, axis=-1)
+        distance = np.linalg.norm(achieved_goal - desired_goal, axis=-1)
         if self.reward_type == "dense":
-            return np.exp(-d)
+            return np.exp(-distance)
         elif self.reward_type == "sparse":
-            return -(d > 0.45).astype(np.float32)
+            return (distance <= 0.45).astype(np.float64)
 
     def compute_terminated(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
@@ -382,6 +307,4 @@ class MazeEnv(GoalEnv):
         return False
 
     def update_target_site_pos(self, pos):
-        """Override this method to update the site qpos in the MuJoCo simulation
-        after a new goal is selected. This is mainly for visualization purposes."""
         raise NotImplementedError

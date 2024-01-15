@@ -16,7 +16,7 @@ These environments also require the MuJoCo engine from Deepmind to be installed.
 
 Note that the latest environment versions use the latest mujoco python bindings maintained by the MuJoCo team. If you wish to use the old versions of the environments that depend on [mujoco-py](https://github.com/openai/mujoco-py), please install this library with `pip install gymnasium-robotics[mujoco-py]`
 
-We support and test for Python 3.7, 3.8, 3.9, 3.10 and 3.11 on Linux and macOS. We will accept PRs related to Windows, but do not officially support it.
+We support and test for Python 3.8, 3.9, 3.10 and 3.11 on Linux and macOS. We will accept PRs related to Windows, but do not officially support it.
 
 ## Environments
 
@@ -36,7 +36,7 @@ The different tasks involve hammering a nail, opening a door, twirling a pen, or
 
 ## Multi-goal API
 
-The robotic environments use an extension of the core Gymansium API by inheriting from [GoalEnv](https://robotics.farama.org/envs/#) class. The new API forces the environments to have a dictionary observation space that contains 3 keys:
+The robotic environments use an extension of the core Gymansium API by inheriting from [GoalEnv](https://robotics.farama.org/content/multi-goal_api/) class. The new API forces the environments to have a dictionary observation space that contains 3 keys:
 
 * `observation` - The actual observation of the environment
 * `desired_goal` - The goal that the agent has to achieved
@@ -83,7 +83,7 @@ If you use this in your research, please cite:
   author = {Rodrigo de Lazcano and Kallinteris Andreas and Jun Jet Tai and Seungjae Ryan Lee and Jordan Terry},
   title = {Gymnasium Robotics},
   url = {http://github.com/Farama-Foundation/Gymnasium-Robotics},
-  version = {1.2.0},
+  version = {1.2.4},
   year = {2023},
 }
 ```

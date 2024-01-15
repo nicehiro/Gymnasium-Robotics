@@ -20,7 +20,7 @@ from gymnasium.utils.ezpickle import EzPickle
 
 # from gymnasium_robotics.envs.point_maze.point_env import PointEnv
 from gymnasium_robotics.envs.maze.maps import U_MAZE
-from gymnasium_robotics.envs.maze.maze import MazeEnv
+from gymnasium_robotics.envs.maze.maze_v4 import MazeEnv
 from gymnasium_robotics.envs.maze.point import PointEnv
 from gymnasium_robotics.utils.mujoco_utils import MujocoModelNames
 
@@ -279,6 +279,7 @@ class PointMazeEnv(MazeEnv, EzPickle):
 
     * `maze_map` - Optional argument to initialize the environment with a custom maze map.
     * `continuing_task` - If set to `True` the episode won't be terminated when reaching the goal, instead a new goal location will be generated. If `False` the environment is terminated when the ball reaches the final goal.
+    * `reset_target` - If set to `True` and the argument `continuing_task` is also `True`, when the ant reaches the target goal the location of the goal will be kept the same and no new goal location will be generated. If `False` a new goal will be generated when reached.
 
     Note that, the maximum number of timesteps before the episode is `truncated` can be increased or decreased by specifying the `max_episode_steps` argument at initialization. For example,
     to increase the total number of timesteps to 100 make the environment as follows:
@@ -309,6 +310,7 @@ class PointMazeEnv(MazeEnv, EzPickle):
         render_mode: Optional[str] = None,
         reward_type: str = "sparse",
         continuing_task: bool = True,
+        reset_target: bool = False,
         **kwargs,
     ):
         point_xml_file_path = path.join(
@@ -321,6 +323,7 @@ class PointMazeEnv(MazeEnv, EzPickle):
             maze_height=0.4,
             reward_type=reward_type,
             continuing_task=continuing_task,
+            reset_target=reset_target,
             **kwargs,
         )
 
@@ -356,6 +359,7 @@ class PointMazeEnv(MazeEnv, EzPickle):
             render_mode,
             reward_type,
             continuing_task,
+            reset_target,
             **kwargs,
         )
 
@@ -380,13 +384,15 @@ class PointMazeEnv(MazeEnv, EzPickle):
         obs, _, _, _, info = self.point_env.step(action)
         obs_dict = self._get_obs(obs)
 
+        reward = self.compute_reward(obs_dict["achieved_goal"], self.goal, info)
+        terminated = self.compute_terminated(obs_dict["achieved_goal"], self.goal, info)
+        truncated = self.compute_truncated(obs_dict["achieved_goal"], self.goal, info)
         info["success"] = bool(
             np.linalg.norm(obs_dict["achieved_goal"] - self.goal) <= 0.45
         )
-        reward = self.compute_reward(obs_dict["achieved_goal"], self.goal, info)
 
-        terminated = self.compute_terminated(obs_dict["achieved_goal"], self.goal, info)
-        truncated = self.compute_truncated(obs_dict["achieved_goal"], self.goal, info)
+        # Update the goal position if necessary
+        self.update_goal(obs_dict["achieved_goal"])
 
         return obs_dict, reward, terminated, truncated, info
 
