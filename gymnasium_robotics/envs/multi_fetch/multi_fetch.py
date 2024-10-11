@@ -245,6 +245,7 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
 
         prev_obj_xpos = []
         self._init_states = []
+        object_0_xypos = None
 
         for object_name in self.object_names:
             object_xypos = self.initial_gripper_xpos[:2] + self.np_random.uniform(
@@ -265,6 +266,11 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
                 )
 
             prev_obj_xpos.append(object_xypos)
+            if object_name == "object0":
+                object_0_xypos = object_xypos
+
+            if object_name == "object1" and self.goal_level == 3:
+                object_xypos = self._goal_level_3_callback(object_xypos, object_0_xypos)
 
             object_qpos = self._utils.get_joint_qpos(
                 self.model, self.data, f"{object_name}:joint"
@@ -278,6 +284,9 @@ class MultiMujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
 
             self._mujoco.mj_forward(self.model, self.data)
         return True
+    
+    def _goal_level_3_callback(self, current, target):
+        return current
 
     def _env_setup(self, initial_qpos):
         for name, value in initial_qpos.items():

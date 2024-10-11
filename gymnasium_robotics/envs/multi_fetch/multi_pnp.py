@@ -199,19 +199,25 @@ class MultiMujocoFetchPickAndPlaceEnv(MultiMujocoFetchEnv, EzPickle):
     def compute_reward(self, achieved_goal, goal, info):
         subgoal_distances = self.subgoal_distances(achieved_goal, goal)
         if self.reward_type == "sparse":
-            return -np.sum(
+            reward = -np.sum(
                 [
                     (d > self.distance_threshold).astype(np.float32)
                     for d in subgoal_distances
                 ],
                 axis=0,
             )
+            reward = reward / self.num_blocks
         else:
-            return -np.sum(subgoal_distances, axis=0)
+            reward = -np.sum(subgoal_distances, axis=0)
+            reward = np.clip(reward, -1.0, 0.0)
+        return reward
         # If blocks are successfully aligned with goals, add a bonus for the gripper being away from the goals
         # np.putmask(
         #     reward, reward == 0, self.gripper_pos_far_from_goals(achieved_goal, goal)
         # )
+    
+    def _goal_level_3_callback(self, current, target):
+        return target
 
     def get_demo_action(self):
         demo_distance_threshold = 0.02

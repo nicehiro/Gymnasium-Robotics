@@ -21,7 +21,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         reward_type="sparse",
         num_blocks=4,
         distance_threshold=0.05,
-        goal_level_prob=[0, 0, 0, 0, 1, 0],
+        goal_level_prob=[0, 0, 0, 0, 1],
         **kwargs,
     ):
         initial_qpos = {
@@ -71,15 +71,40 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             object_pos[2] = self.height_offset
             object_poses.append(object_pos)
 
+        # fixed goals, cornors
+        # goal_object0 = init_grip_xpos + np.array([0.1, 0.25])
+        # goal_object0 = np.append(goal_object0, self.height_offset)
+        # goal_object1 = init_grip_xpos + np.array([-0.2, 0.25])
+        # goal_object1 = np.append(goal_object1, self.height_offset)
+        # goal_object2 = init_grip_xpos + np.array([0.1, -0.25])
+        # goal_object2 = np.append(goal_object2, self.height_offset)
+        # goal_object3 = init_grip_xpos + np.array([-0.2, -0.25])
+        # goal_object3 = np.append(goal_object3, self.height_offset)
 
-        goal_object0 = init_grip_xpos + np.array([0.1, 0.25])
-        goal_object0 = np.append(goal_object0, self.height_offset)
-        goal_object1 = init_grip_xpos + np.array([-0.2, 0.25])
-        goal_object1 = np.append(goal_object1, self.height_offset)
-        goal_object2 = init_grip_xpos + np.array([0.1, -0.25])
-        goal_object2 = np.append(goal_object2, self.height_offset)
-        goal_object3 = init_grip_xpos + np.array([-0.2, -0.25])
-        goal_object3 = np.append(goal_object3, self.height_offset)
+        goal_objects = []
+        for i in range(0, self.num_blocks):
+            goal_object = init_grip_xpos + self.np_random.uniform(
+                np.array([-0.2, -0.25]), np.array([0.1, 0.25]), size=2
+            )
+            while not np.all(
+                [
+                    np.linalg.norm(goal_object - obj_pos[:2]) >= 0.05
+                    for obj_pos in self._init_states
+                ] +
+                [
+                    np.linalg.norm(goal_object - goal_pos[:2]) >= 0.1
+                    for goal_pos in goal_objects
+                ]
+            ):
+                goal_object = init_grip_xpos + self.np_random.uniform(
+                    np.array([-0.2, -0.25]), np.array([0.1, 0.25]), size=2
+                )
+            goal_object = np.append(goal_object, self.height_offset)
+            goal_objects.append(goal_object)
+        goal_object0 = goal_objects[0]
+        goal_object1 = goal_objects[1]
+        goal_object2 = goal_objects[2]
+        goal_object3 = goal_objects[3]
 
         if self.goal_level == 1:
             goals = [goal_object0, object_poses[1], object_poses[2], object_poses[3]]
@@ -91,33 +116,6 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
             goals = [object_poses[0], object_poses[1], object_poses[2], goal_object3]
         elif self.goal_level == 5:
             goals = [goal_object0, goal_object1, goal_object2, goal_object3]
-        elif self.goal_level == 6:
-            goal_objects = []
-
-            for i in range(0, self.num_blocks):
-                goal_object = init_grip_xpos + self.np_random.uniform(
-                    np.array([-0.2, -0.25]), np.array([0.1, 0.25]), size=2
-                )
-
-                while not np.all(
-                    [
-                        np.linalg.norm(goal_object - obj_pos[:2]) >= 0.05
-                        for obj_pos in self._init_states
-                    ] +
-                    [
-                        np.linalg.norm(goal_object - goal_pos[:2]) >= 0.1
-                        for goal_pos in goal_objects
-                    ]
-                ):
-                    goal_object = init_grip_xpos + self.np_random.uniform(
-                        np.array([-0.2, -0.25]), np.array([0.1, 0.25]), size=2
-                    )
-
-                goal_object = np.append(goal_object, self.height_offset)
-                goal_objects.append(goal_object)
-
-            # goal_object0, goal_object1, goal_object2, goal_object3 = goal_objects
-            goals = goal_objects
 
         self.goals = np.concatenate(goals, axis=0).copy()
         return self.goals
@@ -139,7 +137,7 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
         self.obstacles = [[]] * self.num_blocks
         self.ranks = [0] * self.num_blocks
 
-        total_levels = [1, 2, 3, 4, 5, 6]
+        total_levels = [1, 2, 3, 4, 5]
 
         self.goal_level = np.random.choice(
             total_levels, p=self.goal_level_prob, size=1
@@ -171,16 +169,21 @@ class MultiMujocoFetchPushEnv(MultiMujocoFetchEnv, EzPickle):
 
     def compute_reward(self, achieved_goal, goal, info):
         subgoal_distances = self.subgoal_distances(achieved_goal, goal)
-        # Using incremental reward for each block in correct position
-        reward = -np.sum(
-            [
-                (d > self.distance_threshold).astype(np.float32)
-                for d in subgoal_distances
-            ],
-            axis=0,
-        )
-        reward = np.asarray(reward)
-
+        if self.reward_type == "sparse":
+            # Using incremental reward for each block in correct position
+            reward = -np.sum(
+                [
+                    (d > self.distance_threshold).astype(np.float32)
+                    for d in subgoal_distances
+                ],
+                axis=0,
+            )
+            reward = np.asarray(reward)
+            reward = reward / self.num_blocks
+        else:
+            reward = -np.sum(subgoal_distances, axis=0)
+            reward = np.clip(reward, -1.0, 0.0)
+        return reward
         # If blocks are successfully aligned with goals, add a bonus for the gripper being away from the goals
         # np.putmask(
         #     reward, reward == 0, self.gripper_pos_far_from_goals(achieved_goal, goal)
